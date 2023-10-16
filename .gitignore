@@ -1,0 +1,6 @@
+.pytest_cache
+app/shipping/__pycache__
+app/shipping/schema/
+app/shipping/tests/
+pytest.ini
+venv/

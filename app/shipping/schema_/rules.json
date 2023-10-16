@@ -1,0 +1,17 @@
+[
+  {
+      "name": "MatchLowestPackagePrice",
+      "params": {
+        "package_size": "S"
+      }
+  },
+  {
+      "name": "EveryNShipmentIsFreeNTimesInAMonth",
+      "params": {
+          "n": 3,
+          "carrier": "<carrier name>",
+          "package_size": "L",
+          "n_times": 1
+      }
+  }
+]

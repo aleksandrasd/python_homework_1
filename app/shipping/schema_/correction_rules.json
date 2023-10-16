@@ -1,0 +1,8 @@
+[
+  {
+    "name": "MonthlyAccumulatedDiscountLimiter",
+    "params": {
+        "limit": "10"
+     }
+  }
+]
