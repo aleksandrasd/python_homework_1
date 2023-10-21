@@ -1,32 +1,32 @@
 [
   {
-    "carrier": "<hidden>",
-    "package_size": "<hidden>",
-    "price": "<hidden>"
+    "carrier": "TransXcel",
+    "package_size": "S",
+    "price": "1"
   },
   {
-    "carrier": "<hidden>",
-    "package_size": "<hidden>",
-    "price": "<hidden>"
+    "carrier": "TransXcel",
+    "package_size": "M",
+    "price": "2"
   },
   {
-    "carrier": "<hidden>",
-    "package_size": "<hidden>",
-    "price": "<hidden>"
+    "carrier": "TransXcel",
+    "package_size": "XL",
+    "price": "4"
   },
   {
-    "carrier": "<hidden>",
-    "package_size": "<hidden>",
-    "price": "<hidden>"
+    "carrier": "AeroFreight",
+    "package_size": "S",
+    "price": "2"
   },
   {
-    "carrier": "<hidden>",
-    "package_size": "<hidden>",
-    "price": "<hidden>"
+    "carrier": "AeroFreight",
+    "package_size": "XL",
+    "price": "3"
   },
   {
-    "carrier": "<hidden>",
-    "package_size": "<hidden>",
-    "price": "<hidden>"
+    "carrier": "AeroFreight",
+    "package_size": "XXL",
+    "price": "7"
   }
 ]

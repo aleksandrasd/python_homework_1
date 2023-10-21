@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import copy
 import json
 import logging
@@ -52,14 +50,13 @@ def find(x: Sequence[T], **kwargs: Any) -> T:
         if found:
             return element
 
+    text_params = ", ".join(
+        f"{key}=={value!s}" for key, value in kwargs.items()
+    )
     raise LookupError(
         (
-            (
-                "unable to find element using provided"
-                " search parameters: %s."
-            ).format(
-                ", ".join(f"{key}=={value!s}" for key, value in kwargs.items())
-            )
+            "unable to find element using provided search parameters:"
+            f"{text_params}."
         )
     )
 
@@ -145,7 +142,7 @@ def load_data(file: str) -> JSONType:
 def mapping_to_pretty_str(
     x: Mapping[Any, Any], *, key_repr: bool = False, value_repr: bool = False
 ) -> str:
-    """Returns pretty string representation of a mapping"""
+    """Returns string representation of a mapping"""
     display_value = repr if value_repr else str
     display_key = repr if key_repr else str
     return ",".join(f"{display_key(k)}={display_value(x[k])}" for k in x)

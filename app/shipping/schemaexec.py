@@ -1,15 +1,12 @@
 """Initializes classes from schemas
 
-This module initializes classes from schemas (=sequences of mappings) in a
-secure way: variables that needs to be casted to different class will be
-casted and all variables are validated before passing to class' __init__
-method.
+Initializes classes from schemas (=sequences of mappings) in a safe way:
+variables that needs to be casted to different class will be casted and all
+variables are validated before passing to class' __init__ method.
 """
 
 import logging
 from typing import Any, Callable, Mapping, Sequence, TypedDict, TypeVar
-
-from app.shipping.validate import expect_type
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -26,7 +23,7 @@ def init_discount_rules_from_schema(
     caster: Callable[[Any], Mapping],
     validator: Callable[[Any], Any],
 ) -> Mapping[str, T]:
-    validate_rule_dict_schema(rule_schemas)
+    _validate_rule_dict_schema(rule_schemas)
 
     objects = {}
     map_cls = {cls.__name__: cls for cls in rule_cls}
@@ -59,7 +56,7 @@ def init_shipping_plans_from_schema(
     caster: Callable[[Any], Mapping],
     validator: Callable[[Any], Any],
 ) -> Sequence[T]:
-    validate_shipment_dict_schema(shipping_plans)
+    _validate_shipment_dict_schema(shipping_plans)
     objects = []
 
     for shipping_plan in shipping_plans:
@@ -72,35 +69,19 @@ def init_shipping_plans_from_schema(
     return objects
 
 
-def validate_categories_dict_schema(x) -> None:
-    if not isinstance(x, Mapping):
-        raise TypeError(
-            (
-                "categories must be stored in a mapping"
-                f" not {type(x).__name__}"
-            )
-        )
-    try:
-        keys = list(key for key in x)
-        expect_type(list)(*keys)
-        values = list(x[key] for key in x)
-        expect_type(list)(*values)
-    except TypeError as e:
-        raise TypeError("categories have invalid mapping structure") from e
-
-
-def validate_shipment_dict_schema(x) -> None:
+def _validate_shipment_dict_schema(x) -> None:
     if not isinstance(x, Sequence):
         raise TypeError(
-            ("rules must be stored in a sequence" f" not {type(x).__name__}")
+            f"rules must be stored in a sequence not {type(x).__name__}"
         )
-    try:
-        expect_type(Mapping)(*x)
-    except TypeError as e:
-        raise TypeError("rules have invalid structure") from e
+    for y in x:
+        if not isinstance(y, Mapping):
+            raise TypeError(
+                f"rule must be defined in a mapping not {type(y).__name__}"
+            )
 
 
-def validate_rule_dict_schema(x) -> None:
+def _validate_rule_dict_schema(x) -> None:
     if not isinstance(x, Sequence):
         raise TypeError(
             (
@@ -111,11 +92,11 @@ def validate_rule_dict_schema(x) -> None:
     for e in x:
         if not isinstance(e, Mapping):
             raise TypeError(
-                "rule must be defined as a mapping not {type(x).__name__}"
+                f"rule must be defined as a mapping not {type(x).__name__}"
             )
         if len(e) != 2:
             raise TypeError(
-                ("rule must contain exactly two keys not" f" {len(e)} keys")
+                f"rule must contain exactly two keys not {len(e)} keys"
             )
 
         if "params" not in e or "name" not in e:
@@ -128,5 +109,5 @@ def validate_rule_dict_schema(x) -> None:
             )
         if not isinstance(e["name"], str):
             raise TypeError(
-                ("rule's name must be a string not" f" {type(x).__name__}")
+                f"rule's name must be a string not {type(e['name']).__name__}"
             )

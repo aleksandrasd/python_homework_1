@@ -1,10 +1,11 @@
 """Contains discount rules implementations.
 
-There are two groups of discount rules: 
+There are two groups of discount rules:
 * group "discount rules" that determines discount size based on transaction
-  details and previous discounts;
+  details and previous purchase transactions;
 * group "discount correction rules" that may alter calculated discount size
-  coming from first group.
+  that comes from the first group (in other words, contains rules
+  implementation designed for controlling discount size).
 """
 import logging
 from decimal import Decimal
@@ -29,7 +30,6 @@ RULE_NOT_APPLIED = "Rule is not applied:"
 add_trace_logging_level_if_not_exists()
 
 
-# https://peps.python.org/pep-0487/
 logger = logging.getLogger(__name__)
 
 
@@ -39,17 +39,24 @@ class RegisterDiscountRule:
     Subclasses are included to the list of discount rules. In other words,
     any class that takes this class as a parent class is automatically
     included to available for use discount rule list.
-
-    Attributes:
-         registered_rules: list of registered discount rules
     """
 
-    registered_rules: list[Any] = []
+    _rules: list[type[SupportsDiscountCalculate]] = []
+
+    @classmethod
+    def get_rules(cls) -> Sequence[type[SupportsDiscountCalculate]]:
+        """Get list of registered discount rules"""
+        return cls._rules
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        if not isinstance(cls, SupportsDiscountCalculate):
+            raise TypeError(
+                f"class {cls.__name__} must support SupportsDiscountCalculate"
+                " protocol to be included in discount correction rules"
+            )
+        cls._rules.append(cls)
         logger.info("Registered discount rule: %s", cls.__name__)
-        cls.registered_rules.append(cls)
 
 
 class RegisterDiscountCorrectionRule:
@@ -59,46 +66,51 @@ class RegisterDiscountCorrectionRule:
     other words, any class that takes this class as a parent class
     is automatically included to available for use discount correction
     rule list.
-
-    Attributes:
-         registered_correction_rules: list of registered discount rules
     """
 
-    registered_correction_rules: list[Any] = []
+    _rules: list[type[SupportsDiscountCorrection]] = []
+
+    @classmethod
+    def get_rules(cls) -> Sequence[type[SupportsDiscountCorrection]]:
+        """Get list of registered discount correction rules"""
+        return cls._rules
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        if not isinstance(cls, SupportsDiscountCorrection):
+            raise TypeError(
+                f"class {cls.__name__} must support SupportsDiscountCorrection"
+                f" protocol to be included in discount correction rules"
+            )
+        cls._rules.append(cls)
         logger.info("Registered discount correction rule: %s", cls.__name__)
-        cls.registered_correction_rules.append(cls)
 
 
 class MatchLowestPackagePrice(SupportsDiscountCalculate, RegisterDiscountRule):
-    def __init__(self, **transaction_requirements: Any):
+    """Apply discount by applying lowest shipping price among specific
+    package size"""
+
+    def __init__(self, **kwargs: Any):
         """Initializes class instance based on provided parameters
 
         Args:
-            **transaction_requirements: transaction requirements for
-                                        transaction to be eligible for the
-                                        discount
+            **kwargs: transaction features for determining transaction
+                      eligibility for the discount
         """
-        self._transaction_requirements = transaction_requirements
+        self._transaction_type = kwargs
         self._logger = logging.getLogger(f"{__name__}.{self.__str__()}")
         self._logger.info("Initiated class: %s", repr(self))
 
     def __repr__(self):
         return "{}({})".format(
             self.__class__.__name__,
-            mapping_to_pretty_str(
-                self._transaction_requirements, value_repr=False
-            ),
+            mapping_to_pretty_str(self._transaction_type, value_repr=False),
         )
 
     def __str__(self):
         return "{}({})".format(
             self.__class__.__name__,
-            mapping_to_pretty_str(
-                self._transaction_requirements, value_repr=True
-            ),
+            mapping_to_pretty_str(self._transaction_type, value_repr=True),
         )
 
     def calculate_discount(
@@ -107,61 +119,57 @@ class MatchLowestPackagePrice(SupportsDiscountCalculate, RegisterDiscountRule):
         shipping_plans: Sequence[HasShippingPlan],
         history: Sequence[HasDiscountRecord],
     ) -> Decimal:
-        if not attributes_equal(transaction, **self._transaction_requirements):
+        if not attributes_equal(transaction, **self._transaction_type):
             return Decimal("0")
 
         shipping_plans = list(shipping_plans)
         match_shipping_plan = filter_objects(
-            shipping_plans, **self._transaction_requirements
+            shipping_plans, **self._transaction_type
         )
 
         match_shipping_plan = sorted(
             match_shipping_plan, key=lambda x: x.price
         )
         discount = transaction.price - match_shipping_plan[0].price
-        self._logger.trace("Calculated discount: %s", discount)  # type: ignore
 
         return discount
 
 
-class EveryNShipmentIsFreeNTimesInAMonth(
+class EveryNShipmentIsFreeXTimesInAMonth(
     SupportsDiscountCalculate, RegisterDiscountRule
 ):
-    def __init__(self, n: int, n_times: int, **transaction_requirements):
+    """Make every N shipping free at most X times a month"""
+
+    def __init__(self, n: int, x_times: int, **kwargs):
         """Initializes class instance based on provided parameters
 
         Args:
             n: should discount be applied to every transaction (n=1) or every
-              second transaction (n=2), etc.
-            n_times: maximum number of time per month shipping can be free
-            **transaction_requirements: transaction requirements for
-                                        transaction to be eligible for the
-                                        discount
+               second transaction (n=2), etc.
+            x_times: maximum number of time per month shipping can be free
+            **kwargs: transaction features for determining transaction
+                      eligibility for the discount
         """
         self._n = n
-        self._transaction_requirements = transaction_requirements
-        self._n_times = n_times
+        self._transaction_type = kwargs
+        self._x_times = x_times
         self._logger = logging.getLogger(f"{__name__}.{self.__str__()}")
         self._logger.info("Initiated class: %s", repr(self))
 
     def __repr__(self):
-        return "{}(n={},n_times={},{})".format(
+        return "{}(n={},x_times={},{})".format(
             self.__class__.__name__,
             repr(self._n),
-            repr(self._n_times),
-            mapping_to_pretty_str(
-                self._transaction_requirements, value_repr=False
-            ),
+            repr(self._x_times),
+            mapping_to_pretty_str(self._transaction_type, value_repr=False),
         )
 
     def __str__(self):
-        return "{}(n={},n_times={},{})".format(
+        return "{}(n={},x_times={},{})".format(
             self.__class__.__name__,
             str(self._n),
-            str(self._n_times),
-            mapping_to_pretty_str(
-                self._transaction_requirements, value_repr=True
-            ),
+            str(self._x_times),
+            mapping_to_pretty_str(self._transaction_type, value_repr=True),
         )
 
     def calculate_discount(
@@ -170,13 +178,13 @@ class EveryNShipmentIsFreeNTimesInAMonth(
         shipping_plans: Sequence[HasShippingPlan],
         history: Sequence[HasDiscountRecord],
     ) -> Decimal:
-        if not attributes_equal(transaction, **self._transaction_requirements):
+        if not attributes_equal(transaction, **self._transaction_type):
             return Decimal("0")
 
         history = list(history)
 
         similar_transactions = filter_objects(
-            history, **self._transaction_requirements
+            history, **self._transaction_type
         )
 
         number_of_similar = len(similar_transactions) + 1
@@ -189,13 +197,9 @@ class EveryNShipmentIsFreeNTimesInAMonth(
                 date=lambda x: x.month == transaction.date.month,
             )
 
-            if len(applied_this_month) < self._n_times:
+            if len(applied_this_month) < self._x_times:
                 self._logger.trace(  # type: ignore
-                    (
-                        "Rule met all requirements for free shipping."
-                        " Discount: %s."
-                    ),
-                    transaction.price,
+                    ("Rule met all requirements for a free shipping.")
                 )
                 return transaction.price
             else:
@@ -207,11 +211,14 @@ class EveryNShipmentIsFreeNTimesInAMonth(
                     ),
                     RULE_NOT_APPLIED,
                     len(applied_this_month),
-                    self._n_times,
+                    self._x_times,
                 )
         else:
             self._logger.trace(  # type: ignore
-                "%s it should be %d transaction not %d transaction",
+                (
+                    "%s discount is apply on every %d transaction, but this "
+                    "transaction is %d transaction"
+                ),
                 RULE_NOT_APPLIED,
                 self._n,
                 number_of_similar,
@@ -222,6 +229,11 @@ class EveryNShipmentIsFreeNTimesInAMonth(
 class MonthlyAccumulatedDiscountLimiter(
     SupportsDiscountCorrection, RegisterDiscountCorrectionRule
 ):
+    """Enforces hard limit on total discount sum per month.
+
+    If discount exceeds total months discount limit, then the discount is
+    reduced to the one that would not exceed month's limit."""
+
     def __init__(self, limit: Decimal):
         self._limit = limit
         self._logger = logging.getLogger(f"{__name__}.{self.__str__()}")
@@ -255,5 +267,5 @@ class MonthlyAccumulatedDiscountLimiter(
         exceeds = month_discounts + discount - self._limit
         if exceeds > 0:
             discount -= exceeds
-            self._logger.debug("Discount reduced by %s", exceeds)  # type: ignore
+            self._logger.debug("Discount reduced by %s", exceeds)
         return discount

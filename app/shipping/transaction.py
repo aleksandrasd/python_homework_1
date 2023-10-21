@@ -11,7 +11,12 @@ from app.shipping.dataclasses import (
     Transaction,
 )
 from app.shipping.helpers import find
-from app.shipping.protocols import HasDiscountRecord, HasTransaction
+from app.shipping.protocols import (
+    HasDiscountRecord,
+    HasTransaction,
+    SupportsDiscountCalculate,
+    SupportsDiscountCorrection,
+)
 from app.shipping.schemaexec import (
     RuleSchemaDict,
     init_discount_rules_from_schema,
@@ -36,9 +41,9 @@ class ShippingPrice(TypedDict):
 
 
 class TransactionProcessor:
-    """Determines if discount is applicable and shipping final price"""
+    """Determines if discount is applicable and shipping's final price"""
 
-    _expected_keys = ["date", "carrier", "package_size"]
+    _transaction_keys = ["date", "carrier", "package_size"]
 
     def __init__(
         self,
@@ -51,17 +56,18 @@ class TransactionProcessor:
         self._validators = functools.partial(
             validate_args, validators=get_validators(categories)
         )
-
+        map_discount_rules: Mapping[str, SupportsDiscountCalculate]
         map_discount_rules = init_discount_rules_from_schema(
-            RegisterDiscountRule.registered_rules,
+            RegisterDiscountRule.get_rules(),
             rules_schemas,
             self._cast_args,
             self._validators,
         )
         self._discount_rules = list(map_discount_rules.values())
 
+        map_correction_rules: Mapping[str, SupportsDiscountCorrection]
         map_correction_rules = init_discount_rules_from_schema(
-            RegisterDiscountCorrectionRule.registered_correction_rules,
+            RegisterDiscountCorrectionRule.get_rules(),
             rule_correction_schema,
             self._cast_args,
             self._validators,
@@ -142,7 +148,7 @@ class TransactionProcessor:
         logger.debug("Processing transaction: %s", repr(transaction))
 
         _transaction = {
-            k: v for k, v in transaction.items() if k in self._expected_keys
+            k: v for k, v in transaction.items() if k in self._transaction_keys
         }
         transaction_obj = self._validate_and_cast_to_transaction_obj(
             _transaction

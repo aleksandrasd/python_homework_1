@@ -1,15 +1,16 @@
-from asyncio import Protocol
 from datetime import datetime
 from decimal import Decimal
-from typing import Sequence
+from typing import Protocol, Sequence, runtime_checkable
 
 
+@runtime_checkable
 class HasShippingPlan(Protocol):
     carrier: str
     package_size: str
     price: Decimal
 
 
+@runtime_checkable
 class HasTransaction(Protocol):
     date: datetime
     carrier: str
@@ -17,10 +18,12 @@ class HasTransaction(Protocol):
     price: Decimal
 
 
+@runtime_checkable
 class HasDiscountRecord(HasTransaction, Protocol):
     discount: Decimal
 
 
+@runtime_checkable
 class SupportsDiscountCalculate(Protocol):
     def calculate_discount(
         self,
@@ -31,6 +34,7 @@ class SupportsDiscountCalculate(Protocol):
         ...
 
 
+@runtime_checkable
 class SupportsDiscountCorrection(Protocol):
     def correct_discount(
         self,

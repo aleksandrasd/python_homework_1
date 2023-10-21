@@ -1,4 +1,4 @@
 {
-  "package_size": ["<hidden>", "<hidden>", "<hidden>"],
-   "carrier": ["<hidden>", "<hidden>"]
+  "package_size": ["S", "M", "X", "XL", "XXL"],
+   "carrier": ["TransXcel", "AeroFreight"]
 }

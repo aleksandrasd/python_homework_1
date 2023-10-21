@@ -1,6 +1,9 @@
-"""Provides callables for casting from one class to another class. Also keeps
-dictionary of variables names that are coming from outside source and needs to
-be casted to different class and callables that does the casting.
+"""Provides variable cast callables and keeps list of variables that needs
+to be casted.
+
+Provides callables for casting from one class to another class and also keeps
+dictionary of variables names that needs to be casted to different class
+mapped to callables that does the casting.
 """
 import logging
 from datetime import datetime
@@ -52,8 +55,8 @@ def cast_to_decimal(x: str) -> Decimal:
     return Decimal(x)
 
 
-# map of variables names that needs to be casted to different class and
-# callables that does the casting
+# Map of variables names that needs to be casted to different class and
+# callables that do the casting.
 CASTERS: dict[str, Callable[[Any], Any]] = {
     "price": cast_to_decimal,
     "date": datetime.fromisoformat,

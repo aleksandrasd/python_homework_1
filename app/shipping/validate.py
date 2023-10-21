@@ -1,3 +1,7 @@
+"""Provides callables for variables validation
+
+Provides callables for validating variable's type and value and also keeps
+a map of variable names with their validation callables."""
 import logging
 from datetime import datetime
 from decimal import Decimal
@@ -8,9 +12,16 @@ logger = logging.getLogger(__name__)
 
 def get_validators(
     categories: Mapping[str, Sequence[str]]
-) -> dict[str, list[Callable[..., Any]]]:
-    if not isinstance(categories, Mapping):
-        raise TypeError(f"expected mapping not {type(categories).__name__}")
+) -> Mapping[str, list[Callable[..., Any]]]:
+    """Get variables' validation callables.
+
+    Args:
+        categories: category names mapped to category's list of elements
+
+    Returns:
+        Variables' names mapped to variables' validation callables.
+    """
+    _validate_categories_schema(categories)
 
     for key in categories:
         expect_type(str)(*categories[key])
@@ -19,7 +30,7 @@ def get_validators(
         "carrier": [validate_category(categories["carrier"])],
         "package_size": [validate_category(categories["package_size"])],
         "price": [expect_type(Decimal), positive_number],
-        "n_times": [expect_type(int), positive_number],
+        "x_times": [expect_type(int), positive_number],
         "n": [expect_type(int), positive_number],
         "limit": [expect_type(Decimal), positive_number],
         "date": [expect_type(datetime)],
@@ -68,13 +79,12 @@ def validate_args(
     params: Mapping[str, Any],
     validators: Mapping[str, Sequence[Callable[[Any], Any]]],
 ) -> None:
-    """Validate function's/method's arguments.
+    """Validate callable's arguments.
 
     Args:
-        params: method's/function's arguments' names and
-                and their values.
+        params: callable's arguments' names and their values.
         validators: contains arguments names' and their corresponding
-                    validation functions.
+                    validation callables.
 
     Raises:
         AttributeError: raised if missing validator for specific argument.
@@ -103,7 +113,7 @@ def validate_args(
                 ) from e
 
 
-def validate_categories_dict_schema(x) -> None:
+def _validate_categories_schema(x) -> None:
     if not isinstance(x, Mapping):
         raise TypeError(
             (
@@ -113,54 +123,8 @@ def validate_categories_dict_schema(x) -> None:
         )
     try:
         keys = list(key for key in x)
-        expect_type(list)(*keys)
+        expect_type(str)(*keys)
         values = list(x[key] for key in x)
         expect_type(list)(*values)
     except TypeError as e:
         raise TypeError("categories have invalid mapping structure") from e
-
-
-def validate_shipment_dict_schema(x) -> None:
-    if not isinstance(x, Sequence):
-        raise TypeError(
-            f"rules must be stored in a sequence not {type(x).__name__}"
-        )
-    try:
-        expect_type(Mapping)(*x)
-    except TypeError as e:
-        raise TypeError("rules have invalid structure") from e
-
-
-def validate_rule_dict_schema(x) -> None:
-    if not isinstance(x, Sequence):
-        raise TypeError(
-            (
-                "rules must be stored in a sequence not"
-                f"in a {type(x).__name__}"
-            )
-        )
-    for e in x:
-        if not isinstance(e, Mapping):
-            raise TypeError(
-                (
-                    "rule must be defined as a mapping not"
-                    f" {type(x).__name__}"
-                )
-            )
-        if len(e) != 2:
-            raise TypeError(
-                f"rule must contain exactly two keys not {len(e)} keys"
-            )
-
-        if "params" not in e or "name" not in e:
-            k = "', '".join(key for key in e)
-            raise TypeError(
-                (
-                    "rule must be a mapping with keys 'params' and"
-                    f" 'name', but got mapping with keys '{k}'."
-                )
-            )
-        if not isinstance(e["name"], str):
-            raise TypeError(
-                f"rule's name must be a string not {type(x).__name__}"
-            )

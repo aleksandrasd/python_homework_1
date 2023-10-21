@@ -9,9 +9,9 @@
       "name": "EveryNShipmentIsFreeNTimesInAMonth",
       "params": {
           "n": 3,
-          "carrier": "<carrier name>",
+          "carrier": "TransXcel",
           "package_size": "L",
-          "n_times": 1
+          "x_times": 1
       }
   }
 ]
