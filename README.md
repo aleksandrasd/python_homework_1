@@ -7,7 +7,7 @@ Tasks:
 
 Requirements:
 
-* Code should not use packages other than from [Standard Python library](https://docs.python.org/3/library/index.html);
+* Code should not use packages other than Pydantic and packages from [Standard Python library](https://docs.python.org/3/library/index.html);
 * Code should be **abstract** and **extendable**.
 
 > [!NOTE]  

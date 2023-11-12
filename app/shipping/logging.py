@@ -24,6 +24,7 @@ def add_logging_level(
         setattr(logging, method_name, module_log)
 
 
-def add_trace_logging_level_if_not_exists(level_number: int | None = None):
-    level = level_number if level_number is not None else logging.DEBUG - 5
-    add_logging_level("TRACE", level, "trace", False)
+def add_trace_logging_level_if_not_exists(
+    level_number: int = logging.DEBUG - 5,
+):
+    add_logging_level("TRACE", level_number, "trace", False)

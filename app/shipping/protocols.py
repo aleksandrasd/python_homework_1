@@ -1,6 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Protocol, Sequence, runtime_checkable
+from sqlite3 import Date
+from typing import Iterable, Protocol, runtime_checkable
+
+from app.shipping.pydantic_types import Carrier, PackageSize
 
 
 @runtime_checkable
@@ -12,10 +15,9 @@ class HasShippingPlan(Protocol):
 
 @runtime_checkable
 class HasTransaction(Protocol):
-    date: datetime
-    carrier: str
-    package_size: str
-    price: Decimal
+    date: datetime | Date
+    carrier: str | Carrier
+    package_size: str | PackageSize
 
 
 @runtime_checkable
@@ -25,22 +27,38 @@ class HasDiscountRecord(HasTransaction, Protocol):
 
 @runtime_checkable
 class SupportsDiscountCalculate(Protocol):
+    """Every discount rule implements this protocol"""
+
     def calculate_discount(
         self,
         transaction: HasTransaction,
-        shipping_plans: Sequence[HasShippingPlan],
-        history: Sequence[HasDiscountRecord],
+        price: Decimal,
+        shipping_plans: Iterable[HasShippingPlan],
+        history: Iterable[HasDiscountRecord],
     ) -> Decimal:
+        """Calculates discount (if any)
+
+        Args:
+            transaction: transaction details
+            price: price before discount
+            shipping_plans: shipping plans
+            history: transaction details with applied discount
+
+        Returns:
+            Decimal: discount size
+        """
         ...
 
 
 @runtime_checkable
 class SupportsDiscountCorrection(Protocol):
+    """Every discount correction rule implements this protocol"""
+
     def correct_discount(
         self,
         transaction: HasTransaction,
         discount: Decimal,
-        shipping_service: Sequence[HasShippingPlan],
-        history: Sequence[HasDiscountRecord],
+        shipping_service: Iterable[HasShippingPlan],
+        history: Iterable[HasDiscountRecord],
     ) -> Decimal:
         ...
